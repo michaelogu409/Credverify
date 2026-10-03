@@ -133,11 +133,21 @@ const recordProgressOnChain = async (student, courseName, semester, grade, credi
   const receipt = await tx.wait();
   return { txHash: receipt.hash, blockNumber: receipt.blockNumber };
 };
-
+const getProgressHistoryOnChain = async (studentWallet) => {
+  const contract = getProgressTracker();
+  const history = await contract.getProgressHistory(studentWallet);
+  return history.map(h => ({
+    moduleCode: h.moduleCode,
+    grade: h.grade,
+    completionDate: new Date(Number(h.completionDate) * 1000).toISOString(),
+    recordedAt: new Date(Number(h.timestamp) * 1000).toISOString(),
+  }));
+};
 module.exports = {
   generateSHA256Hash,
   uploadToIPFS,
   issueCredentialOnChain,
   verifyCredentialOnChain,
   recordProgressOnChain,
+  getProgressHistoryOnChain
 };

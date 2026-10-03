@@ -130,10 +130,21 @@ const recordProgress = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
+const getMyProgress = async (req, res) => {
+  try {
+    if (!req.user.walletAddress) {
+      return res.status(400).json({ error: 'Connect your wallet first.' });
+    }
+    const progress = await blockchainService.getProgressHistoryOnChain(req.user.walletAddress);
+    res.json({ progress });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
 module.exports = {
   issueCredential,
   getMyCredentials,
   getIssuedCredentials,
   recordProgress,
+  getMyProgress, 
 };
