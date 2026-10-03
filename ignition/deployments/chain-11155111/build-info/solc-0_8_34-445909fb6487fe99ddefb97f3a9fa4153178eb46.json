@@ -1,0 +1,49 @@
+{
+  "_format": "hh3-sol-build-info-1",
+  "id": "solc-0_8_34-445909fb6487fe99ddefb97f3a9fa4153178eb46",
+  "solcVersion": "0.8.34",
+  "solcLongVersion": "0.8.34+commit.80d5c536",
+  "compilerType": "solc",
+  "toolVersions": {
+    "hardhat": "3.15.0"
+  },
+  "userSourceNameMap": {
+    "contracts/CredentialRegistry.sol": "project/contracts/CredentialRegistry.sol"
+  },
+  "input": {
+    "language": "Solidity",
+    "settings": {
+      "evmVersion": "osaka",
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "outputSelection": {
+        "*": {
+          "": [
+            "ast"
+          ],
+          "*": [
+            "abi",
+            "evm.bytecode.linkReferences",
+            "evm.bytecode.object",
+            "evm.bytecode.opcodes",
+            "evm.bytecode.sourceMap",
+            "evm.deployedBytecode.immutableReferences",
+            "evm.deployedBytecode.linkReferences",
+            "evm.deployedBytecode.object",
+            "evm.deployedBytecode.opcodes",
+            "evm.deployedBytecode.sourceMap",
+            "evm.methodIdentifiers"
+          ]
+        }
+      },
+      "remappings": []
+    },
+    "sources": {
+      "project/contracts/CredentialRegistry.sol": {
+        "content": "// SPDX-License-Identifier: MIT\r\npragma solidity ^0.8.20;\r\n\r\n/// @title CredentialRegistry\r\n/// @notice Stores and verifies academic credentials issued by authorized institutions.\r\n/// @dev No personal data is stored on-chain — only a hash of the credential document\r\n///      (e.g. SHA-256 of the PDF/transcript) plus minimal metadata for lookup.\r\ncontract CredentialRegistry {\r\n\r\n    address public owner;\r\n\r\n    struct Credential {\r\n        address student;         // wallet address of the credential owner\r\n        address institution;     // wallet address of the issuing institution\r\n        string credentialType;   // e.g. \"Degree\", \"Diploma\", \"Certificate\", \"Transcript\"\r\n        string programme;        // e.g. \"BSc Computer Science\"\r\n        string documentHash;     // SHA-256 hash of the actual document (computed off-chain)\r\n        string ipfsCID;          // optional: IPFS pointer to the encrypted/stored document\r\n        uint256 issuedAt;        // block timestamp of issuance\r\n        bool revoked;            // true if the institution has revoked this credential\r\n    }\r\n\r\n    // credentialId => Credential\r\n    mapping(bytes32 => Credential) private credentials;\r\n\r\n    // student wallet => list of credential IDs they hold\r\n    mapping(address => bytes32[]) private studentCredentials;\r\n\r\n    // institution wallet => is it allowed to issue credentials\r\n    mapping(address => bool) public authorizedInstitutions;\r\n\r\n    event InstitutionAuthorized(address indexed institution);\r\n    event InstitutionRevoked(address indexed institution);\r\n    event CredentialIssued(\r\n        bytes32 indexed credentialId,\r\n        address indexed student,\r\n        address indexed institution,\r\n        string credentialType\r\n    );\r\n    event CredentialRevoked(bytes32 indexed credentialId, address indexed institution);\r\n\r\n    modifier onlyOwner() {\r\n        require(msg.sender == owner, \"Not contract owner\");\r\n        _;\r\n    }\r\n\r\n    modifier onlyAuthorizedInstitution() {\r\n        require(authorizedInstitutions[msg.sender], \"Not an authorized institution\");\r\n        _;\r\n    }\r\n\r\n    constructor() {\r\n        owner = msg.sender;\r\n    }\r\n\r\n    /// @notice Owner authorizes an institution's wallet to issue credentials.\r\n    function authorizeInstitution(address institution) external onlyOwner {\r\n        require(institution != address(0), \"Invalid address\");\r\n        authorizedInstitutions[institution] = true;\r\n        emit InstitutionAuthorized(institution);\r\n    }\r\n\r\n    /// @notice Owner revokes an institution's ability to issue credentials.\r\n    function revokeInstitution(address institution) external onlyOwner {\r\n        authorizedInstitutions[institution] = false;\r\n        emit InstitutionRevoked(institution);\r\n    }\r\n\r\n    /// @notice Issue a new credential to a student's wallet.\r\n    /// @param student Wallet address of the receiving student.\r\n    /// @param credentialType e.g. \"Degree\", \"Diploma\", \"Certificate\", \"Transcript\".\r\n    /// @param programme e.g. \"BSc Computer Science\".\r\n    /// @param documentHash SHA-256 hash of the credential document, computed off-chain.\r\n    /// @param ipfsCID Optional IPFS content ID where the document is stored.\r\n    /// @return credentialId The unique ID assigned to this credential.\r\n    function issueCredential(\r\n        address student,\r\n        string calldata credentialType,\r\n        string calldata programme,\r\n        string calldata documentHash,\r\n        string calldata ipfsCID\r\n    ) external onlyAuthorizedInstitution returns (bytes32 credentialId) {\r\n        require(student != address(0), \"Invalid student address\");\r\n        require(bytes(documentHash).length > 0, \"Document hash required\");\r\n\r\n        credentialId = keccak256(\r\n            abi.encodePacked(student, msg.sender, documentHash, block.timestamp)\r\n        );\r\n\r\n        require(credentials[credentialId].issuedAt == 0, \"Credential already exists\");\r\n\r\n        credentials[credentialId] = Credential({\r\n            student: student,\r\n            institution: msg.sender,\r\n            credentialType: credentialType,\r\n            programme: programme,\r\n            documentHash: documentHash,\r\n            ipfsCID: ipfsCID,\r\n            issuedAt: block.timestamp,\r\n            revoked: false\r\n        });\r\n\r\n        studentCredentials[student].push(credentialId);\r\n\r\n        emit CredentialIssued(credentialId, student, msg.sender, credentialType);\r\n    }\r\n\r\n    /// @notice The issuing institution can revoke a credential it issued.\r\n    function revokeCredential(bytes32 credentialId) external {\r\n        Credential storage cred = credentials[credentialId];\r\n        require(cred.issuedAt != 0, \"Credential does not exist\");\r\n        require(cred.institution == msg.sender, \"Only issuing institution can revoke\");\r\n        require(!cred.revoked, \"Already revoked\");\r\n\r\n        cred.revoked = true;\r\n        emit CredentialRevoked(credentialId, msg.sender);\r\n    }\r\n\r\n    /// @notice Anyone can verify a credential by its ID — this is the core public check.\r\n    function verifyCredential(bytes32 credentialId)\r\n        external\r\n        view\r\n        returns (\r\n            bool exists,\r\n            bool valid,\r\n            address student,\r\n            address institution,\r\n            string memory credentialType,\r\n            string memory programme,\r\n            string memory documentHash,\r\n            uint256 issuedAt\r\n        )\r\n    {\r\n        Credential storage cred = credentials[credentialId];\r\n        exists = cred.issuedAt != 0;\r\n        valid = exists && !cred.revoked;\r\n\r\n        return (\r\n            exists,\r\n            valid,\r\n            cred.student,\r\n            cred.institution,\r\n            cred.credentialType,\r\n            cred.programme,\r\n            cred.documentHash,\r\n            cred.issuedAt\r\n        );\r\n    }\r\n\r\n    /// @notice Get all credential IDs belonging to a student — used by the student dashboard.\r\n    function getCredentialsOf(address student) external view returns (bytes32[] memory) {\r\n        return studentCredentials[student];\r\n    }\r\n}"
+      }
+    }
+  }
+}

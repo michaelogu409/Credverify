@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CredVerify — Trusted academic credential verification</title>
+<style>
+  :root{
+    --green: #3a896c;
+    --green-dark: #2c6b54;
+    --green-ink: #274438;
+    --ink: #1f2430;
+    --muted: #667085;
+    --page-bg: #f6f5f1;
+    --card-bg: #ffffff;
+    --card-border: #ececec;
+    --mint: #dcf2ea;
+    --mint-ink: #2c6b54;
+    --rose: #f6dbe7;
+    --rose-ink: #9c3f66;
+    --lavender: #e7ddf5;
+    --lavender-ink: #5b3f8c;
+    --amber: #f7edd5;
+    --amber-ink: #8a6d1f;
+    --blue: #dceafb;
+    --blue-ink: #2f5f96;
+    --radius: 16px;
+    --shadow: 0 2px 10px rgba(20,20,20,0.05), 0 1px 2px rgba(20,20,20,0.04);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--page-bg); color:var(--ink); -webkit-font-smoothing:antialiased;}
+  a{color:inherit; text-decoration:none;}
+  button{font-family:inherit; cursor:pointer;}
+  .hidden{display:none !important;}
+
+  /* ---------- Buttons ---------- */
+  .btn{
+    display:inline-flex; align-items:center; gap:8px;
+    padding:12px 20px; border-radius:999px; font-size:15px; font-weight:600;
+    border:1px solid transparent; transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .btn:active{ transform: translateY(1px); }
+  .btn-primary{ background:var(--green); color:#fff; }
+  .btn-primary:hover{ background:var(--green-dark); }
+  .btn-secondary{ background:#fff; color:var(--ink); border-color:#dedad2; }
+  .btn-secondary:hover{ border-color:#c9c4b8; }
+  .btn-ghost{ background:transparent; color:var(--green-ink); padding:8px 10px; }
+  .btn-sm{ padding:8px 14px; font-size:13.5px; border-radius:10px; }
+  .btn-danger{ background:#fff; color:#a3352f; border-color:#f0d4d1; }
+  .btn-danger:hover{ background:#fdf3f2; }
+  .btn:disabled{ opacity:.5; cursor:not-allowed; }
+
+  /* ---------- Top nav (marketing) ---------- */
+  .site-header{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:22px 48px; max-width:1320px; margin:0 auto;
+  }
+  .brand{ display:flex; align-items:center; gap:10px; font-weight:700; font-size:18px; }
+  .brand-badge{
+    width:34px; height:34px; border-radius:9px; background:var(--green);
+    display:flex; align-items:center; justify-content:center; color:#fff;
+  }
+  .site-nav{ display:flex; align-items:center; gap:28px; font-size:15px; color:var(--muted); }
+  .site-nav a:hover{ color:var(--ink); }
+
+  /* ---------- Hero ---------- */
+  .hero-wrap{
+    background:linear-gradient(120deg, #e9f5ef 0%, #f6f5f1 45%, #f9eef2 100%);
+  }
+  .hero{
+    max-width:1320px; margin:0 auto; padding:40px 48px 80px;
+    display:grid; grid-template-columns:1.1fr 1fr; gap:60px; align-items:center;
+  }
+  .eyebrow-pill{
+    display:inline-flex; align-items:center; gap:8px; background:var(--mint); color:var(--mint-ink);
+    padding:8px 14px; border-radius:999px; font-size:13.5px; font-weight:600; margin-bottom:22px;
+  }
+  .hero h1{ font-size:48px; line-height:1.12; margin:0 0 20px; letter-spacing:-0.01em; }
+  .hero h1 .accent{ color:var(--green); }
+  .hero p{ font-size:17px; line-height:1.6; color:var(--muted); max-width:520px; margin:0 0 30px; }
+  .hero-ctas{ display:flex; gap:14px; }
+
+  .hero-card{
+    background:var(--card-bg); border-radius:var(--radius); box-shadow:var(--shadow);
+    padding:26px; position:relative;
+  }
+  .hero-card-toast{
+    position:absolute; top:-18px; left:24px; background:#fff; border-radius:12px; box-shadow:var(--shadow);
+    padding:10px 16px; font-size:13.5px; font-weight:600; display:flex; align-items:center; gap:8px;
+  }
+  .hero-cred-title{ display:flex; align-items:center; justify-content:space-between; margin:14px 0 18px; }
+  .hero-cred-title strong{ font-size:17px; }
+  .pill-verified{
+    background:var(--mint); color:var(--mint-ink); font-size:12.5px; font-weight:700;
+    padding:5px 11px; border-radius:999px; display:inline-flex; align-items:center; gap:5px;
+  }
+  .hero-cred-row{ display:flex; align-items:center; gap:10px; font-size:14.5px; color:var(--muted); padding:8px 0; }
+  .hero-cred-row b{ color:var(--ink); font-weight:600; }
+  .row-icon{ width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .hero-card-foot{ border-top:1px solid var(--card-border); margin-top:8px; padding-top:12px; font-size:12.5px; color:#9aa1ad; }
+  .hero-card-badge{
+    position:absolute; bottom:-16px; right:20px; background:#fff; border-radius:12px; box-shadow:var(--shadow);
+    padding:9px 15px; font-size:13px; font-weight:600; display:flex; align-items:center; gap:6px; color:var(--mint-ink);
+  }
+
+  /* ---------- Generic section ---------- */
+  .section{ max-width:1320px; margin:0 auto; padding:90px 48px; }
+  .section-head{ text-align:center; max-width:640px; margin:0 auto 48px; }
+  .section-head h2{ font-size:34px; margin:0 0 12px; letter-spacing:-0.01em; }
+  .section-head p{ color:var(--muted); font-size:16px; margin:0; }
+
+  .grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:22px; }
+  .grid-3{ display:grid; grid-template-columns:repeat(3,1fr); gap:22px; }
+  .grid-4{ display:grid; grid-template-columns:repeat(4,1fr); gap:22px; }
+
+  .feature-card, .role-card, .step-card{
+    background:var(--card-bg); border-radius:var(--radius); padding:28px; box-shadow:var(--shadow);
+  }
+  .icon-badge{ width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; margin-bottom:18px; }
+  .feature-card h3, .role-card h3{ font-size:19px; margin:0 0 10px; }
+  .feature-card p{ color:var(--muted); font-size:14.5px; line-height:1.55; margin:0; }
+
+  .role-card p{ color:var(--muted); font-size:14.5px; line-height:1.55; margin:0 0 16px; }
+  .role-list{ list-style:none; padding:0; margin:0 0 22px; display:flex; flex-direction:column; gap:10px; }
+  .role-list li{ display:flex; align-items:flex-start; gap:9px; font-size:14px; color:var(--ink); }
+  .role-list li .dot{ color:var(--green); font-weight:700; margin-top:1px; }
+  .role-card .btn{ width:100%; justify-content:center; }
+
+  .step-card .step-num{ color:var(--green); font-size:26px; font-weight:800; margin-bottom:14px; }
+  .step-card h3{ font-size:17.5px; margin:0 0 8px; }
+  .step-card p{ color:var(--muted); font-size:14px; line-height:1.55; margin:0; }
+
+  .cta-banner{
+    background:linear-gradient(120deg, #e6f6ee 0%, #f6f5f1 50%, #fbeaf1 100%);
+    border-radius:24px; text-align:center; padding:60px 40px; margin:0 48px 90px; max-width:1224px; margin-left:auto; margin-right:auto;
+  }
+  .cta-banner h2{ font-size:30px; margin:0 0 12px; }
+  .cta-banner p{ color:var(--muted); margin:0 0 26px; }
+
+  .site-footer{
+    border-top:1px solid var(--card-border); padding:26px 48px; max-width:1320px; margin:0 auto;
+    display:flex; align-items:center; justify-content:space-between; color:var(--muted); font-size:14px;
+  }
+  .footer-brand{ display:flex; align-items:center; gap:10px; font-weight:700; color:var(--ink); }
+  .footer-links{ display:flex; gap:22px; }
+  .footer-links a:hover{ color:var(--ink); }
+
+  /* ---------- App shell (dashboards) ---------- */
+  .app-shell{ display:flex; min-height:100vh; }
+  .sidebar{
+    width:250px; background:#f4f8f5; border-right:1px solid #e6e6e0; padding:22px 16px;
+    display:flex; flex-direction:column; flex-shrink:0;
+  }
+  .sidebar-brand{ display:flex; align-items:center; gap:10px; font-weight:700; padding:6px 8px 22px; }
+  .sidebar-user{
+    display:flex; align-items:center; gap:10px; background:var(--green); color:#fff; border-radius:12px;
+    padding:12px; margin-bottom:18px;
+  }
+  .sidebar-user .avatar{ width:34px; height:34px; border-radius:9px; background:rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .sidebar-user div span{ display:block; }
+  .sidebar-user .name{ font-weight:700; font-size:14.5px; }
+  .sidebar-user .role{ font-size:12.5px; opacity:.85; }
+  .side-nav{ display:flex; flex-direction:column; gap:4px; flex:1; }
+  .side-nav button{
+    display:flex; align-items:center; gap:11px; padding:11px 12px; border:none; background:transparent;
+    border-radius:10px; font-size:14.5px; color:#3d4a43; text-align:left; width:100%;
+  }
+  .side-nav button:hover{ background:#e9f1eb; }
+  .side-nav button.active{ background:var(--green); color:#fff; font-weight:600; }
+  .side-nav .icon{ width:18px; height:18px; flex-shrink:0; }
+  .sidebar-foot{ display:flex; flex-direction:column; gap:14px; padding-top:14px; }
+  .sidebar-foot button{ display:flex; align-items:center; gap:9px; background:none; border:none; color:#3d4a43; font-size:14px; padding:8px; }
+  .sidebar-foot .back-home{ text-align:center; font-size:13px; color:var(--muted); }
+
+  .app-main{ flex:1; padding:40px 46px; max-width:1180px; }
+  .app-main h1{ font-size:27px; margin:0 0 6px; }
+  .app-main .subhead{ color:var(--muted); margin:0 0 28px; font-size:15px; }
+
+  .stat-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:18px; margin-bottom:30px; }
+  .stat-card{ background:#fff; border-radius:14px; padding:20px; box-shadow:var(--shadow); }
+  .stat-card .icon-badge{ margin-bottom:16px; width:38px; height:38px; border-radius:10px; }
+  .stat-card .num{ font-size:26px; font-weight:800; }
+  .stat-card .label{ color:var(--muted); font-size:13.5px; margin-top:2px; }
+
+  .panel{ background:#fff; border-radius:16px; box-shadow:var(--shadow); padding:28px; margin-bottom:22px; }
+  .panel-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+  .panel-head h2{ font-size:18px; margin:0; }
+  .panel-sub{ color:var(--muted); font-size:14px; margin:4px 0 20px; }
+
+  .empty-state{
+    border:1px dashed #e2ddd0; border-radius:14px; background:#faf9f6; padding:60px 20px; text-align:center;
+  }
+  .empty-state .icon-badge{ margin:0 auto 16px; }
+  .empty-state h3{ margin:0 0 8px; font-size:16.5px; }
+  .empty-state p{ color:var(--muted); font-size:14px; margin:0; max-width:340px; margin:0 auto; }
+
+  .field{ margin-bottom:18px; }
+  .field label{ display:block; font-size:14px; font-weight:600; margin-bottom:8px; }
+  .field input, .field select{
+    width:100%; padding:12px 14px; border:1px solid #e2ddd0; border-radius:10px; font-size:14.5px;
+    font-family:inherit; background:#fdfcfa;
+  }
+  .field input:focus, .field select:focus{ outline:2px solid var(--green); outline-offset:1px; }
+  .field-hint{ color:var(--muted); font-size:13px; margin:-2px 0 16px; }
+
+  .search-row{ display:flex; gap:10px; margin-bottom:18px; }
+  .search-row input{ flex:1; }
+
+  .cred-item{
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+    border:1px solid var(--card-border); border-radius:12px; padding:16px 18px; margin-bottom:12px;
+  }
+  .cred-item .cred-main{ display:flex; align-items:center; gap:14px; }
+  .cred-item .file-icon{ width:38px; height:38px; border-radius:10px; background:var(--blue); color:var(--blue-ink); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .cred-item .title{ font-weight:600; font-size:15px; }
+  .cred-item .meta{ color:var(--muted); font-size:13px; margin-top:2px; }
+  .cred-item .right{ display:flex; align-items:center; gap:10px; }
+
+  .status-pill{ font-size:12.5px; font-weight:700; padding:5px 11px; border-radius:999px; white-space:nowrap; }
+  .status-pending{ background:var(--amber); color:var(--amber-ink); }
+  .status-verified{ background:var(--mint); color:var(--mint-ink); }
+  .status-rejected{ background:#fbe1de; color:#a3352f; }
+
+  .grant-item{
+    display:flex; align-items:center; justify-content:space-between; border:1px solid var(--card-border);
+    border-radius:12px; padding:14px 16px; margin-bottom:10px;
+  }
+  .grant-item .who{ display:flex; align-items:center; gap:12px; }
+  .grant-item .av{ width:34px; height:34px; border-radius:9px; background:var(--rose); color:var(--rose-ink); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; }
+  .grant-item .name{ font-weight:600; font-size:14.5px; }
+  .grant-item .org{ color:var(--muted); font-size:13px; }
+
+  .activity-item{ display:flex; gap:14px; padding:14px 0; border-bottom:1px solid var(--card-border); }
+  .activity-item:last-child{ border-bottom:none; }
+  .activity-item .dot{ width:34px; height:34px; border-radius:9px; background:var(--mint); color:var(--mint-ink); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .activity-item .text{ font-size:14.5px; }
+  .activity-item .time{ color:var(--muted); font-size:12.5px; margin-top:2px; }
+
+  .review-item{ border:1px solid var(--card-border); border-radius:12px; padding:18px; margin-bottom:14px; }
+  .review-item .top-row{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; }
+  .review-item .note-input{ width:100%; padding:10px 12px; border:1px solid #e2ddd0; border-radius:9px; font-family:inherit; font-size:13.5px; margin:12px 0; resize:vertical; min-height:44px; }
+  .review-actions{ display:flex; gap:10px; }
+
+  .toast{
+    position:fixed; bottom:26px; right:26px; background:var(--ink); color:#fff; padding:14px 20px;
+    border-radius:12px; font-size:14px; box-shadow:0 8px 24px rgba(0,0,0,0.2); z-index:999;
+    display:flex; align-items:center; gap:10px; transition:opacity .3s ease, transform .3s ease;
+  }
+
+  .checkbox-row{ display:flex; align-items:center; gap:8px; font-size:14px; margin:6px 0; }
+
+  @media (max-width: 980px){
+    .hero{ grid-template-columns:1fr; }
+    .grid-3, .grid-4, .grid-2{ grid-template-columns:1fr; }
+    .stat-grid{ grid-template-columns:1fr 1fr; }
+    .app-shell{ flex-direction:column; }
+    .sidebar{ width:100%; flex-direction:row; overflow-x:auto; }
+    .side-nav{ flex-direction:row; }
+  }
+ #landing{ position:relative; overflow:hidden; }
+#landing > *:not(.bg-stack){ position:relative; z-index:1; }
+.hero-wrap{ background:transparent; }
+
+.bg-stack{
+  position:fixed; inset:0; z-index:0; display:flex; flex-direction:column;
+  pointer-events:none;
+}
+.bg-block{ position:relative; flex:1; overflow:hidden; }
+.bg-inner{
+  position:fixed
+  ; inset:-40px; background-size:cover; background-position:center;
+  transition:transform .15s ease-out; will-change:transform;
+}
+/* the 0.8 controls how faded the picture is; raise it for lighter pictures */
+.bg-top .bg-inner{
+  background-image:linear-gradient(rgba(246,245,241,.2), rgba(246,245,241,.2)), url(landing\ page\ background.jpg);
+}
+.bg-bottom .bg-inner{
+  background-image:linear-gradient(rgba(246,245,241,.0), rgba(246,245,241,.0)), url(new\ landing\ page.jpeg);
+}
+/* Logo and menu */
+.hero-wrap .brand{ color:#ffffff; font-weight:800; }
+.hero-wrap .site-nav a{ color:#ffffff; font-weight:700; }
+.hero-wrap .site-nav a:hover{ color:#7ee0b8; }
+
+/* Small pill above the heading */
+.eyebrow-pill{ background:#ffffff; color:#1f6b50; font-weight:700; }
+
+/* Heading and paragraph */
+.hero h1{ color:#ffffff; font-weight:800; text-shadow:0 2px 12px rgba(0,0,0,.35); }
+.hero h1 .accent{ color:#5fe3a8; }
+.hero p{ color:#ffffff; font-weight:600; text-shadow:0 1px 8px rgba(0,0,0,.45); }
+
+/* Buttons */
+.hero-wrap .btn-primary{
+  background:#1fa971; color:#ffffff; font-weight:800;
+  box-shadow:0 6px 18px rgba(0,0,0,.25);
+}
+.hero-wrap .btn-primary:hover{ background:#178a5c; }
+.hero-wrap .btn-secondary{
+  background:#ffffff; color:#0f2a4a; font-weight:700; border-color:#ffffff;
+  box-shadow:0 6px 18px rgba(0,0,0,.2);
+}
+/* "One platform, three roles", "How it works" and the text under them */
+.section-head h2{ color:#ffffff; font-weight:800; text-shadow:0 2px 10px rgba(0,0,0,.5); }
+.section-head p{ color:#ffffff; font-weight:600; text-shadow:0 1px 8px rgba(0,0,0,.5); }
+
+/* Footer: CredVerify, the line of text, and the links */
+.site-footer{ color:#ffffff; font-weight:600; border-top:1px solid rgba(255,255,255,.6); }
+.footer-brand{ color:#ffffff; font-weight:800; }
+.footer-links a{ color:#ffffff; font-weight:700; }
+.footer-links a:hover{ color:#7ee0b8; }
+
+.hero-card{
+  background-image:linear-gradient(rgba(255,255,255,.1), rgba(255,255,255,.1)), url(sub.avif);
+  background-size:cover;
+  background-position:center;
+}
+.hero-card .hero-cred-title strong{ color:#fffdfd; font-weight:800; }
+.hero-card .hero-cred-row{ color:#ffffff; font-weight:700; }
+.hero-card .hero-cred-row b{ color:#ffffff; font-weight:800; }
+.hero-card .hero-card-foot{ color:#ffffff; font-weight:700; border-top:1px solid rgba(0,0,0,.4); }
+</style>
+</head>
+<body>
+
+<!-- ============ LANDING PAGE ============ -->
+<div id="landing">
+  <div class="bg-stack">
+  <div class="bg-block bg-top"><div class="bg-inner"></div></div>
+  <div class="bg-block bg-bottom"><div class="bg-inner"></div></div>
+</div>
+  <div class="hero-wrap">
+    <header class="site-header">
+      <div class="brand">
+        <span class="brand-badge">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2l8 3v6c0 5-3.5 8.5-8 11-4.5-2.5-8-6-8-11V5l8-3z" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        CredVerify
+      </div>
+      <nav class="site-nav">
+        <a href="#how-it-works"><b>>How it works</b></a>
+        <a href="#roles"><b>Roles</b></a>
+      </nav>
+      <button class="btn btn-primary" onclick="goToDashboard()"><b>My dashboard</b></button>
+    </header>
+
+    <div class="hero">
+      <div>
+        <span class="eyebrow-pill">🎓 Trusted academic credential verification</span>
+        <h1>Credentials that are<br><span class="accent">impossible to forge</span></h1>
+        <p><strong> Credverify connects students, institutions and employers in one trusted loop. Students upload documents, institutions verify them, and employers confirm authenticity with students always in control of who can see what.</strong></p>
+        <div class="hero-ctas">
+          <button class="btn btn-primary" onclick="openRolePicker('register')">Create your account <span>→</span></button>
+          <button class="btn btn-secondary" onclick="openRolePicker('signin')">Sign in to your role</button>
+        </div>
+      </div>
+
+      <div class="hero-card">
+        <div class="hero-card-toast">📄 Document uploaded</div>
+        <div class="hero-cred-title">
+          <strong>BSc Computer Science</strong>
+          <span class="pill-verified">✓ Verified</span>
+        </div>
+        <div class="hero-cred-row"><span class="row-icon" style="background:var(--mint);color:var(--mint-ink)">👤</span> Issued to <b>Student</b></div>
+        <div class="hero-cred-row"><span class="row-icon" style="background:var(--lavender);color:var(--lavender-ink)">🏛</span> Verified by <b>Federal University of Techology Owerri</b></div>
+        <div class="hero-cred-row"><span class="row-icon" style="background:var(--blue);color:var(--blue-ink)">🛡</span> Shared with <b>1 employer</b> (revocable)</div>
+        <div class="hero-card-foot">Tamper-free record · Institution-signed · Consent-protected</div>
+        <div class="hero-card-badge">✓ Access granted</div>
+      </div>
+    </div>
+  </div>
+
+  <section class="section">
+    <div class="grid-2">
+      <div class="feature-card">
+        <div class="icon-badge" style="background:var(--mint);color:var(--mint-ink)">📤</div>
+        <h3>Upload credentials</h3>
+        <p>Students upload certificates, transcripts and diplomas in seconds.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon-badge" style="background:var(--lavender);color:var(--lavender-ink)">✓</div>
+        <h3>Institution review</h3>
+        <p>Accredited institutions review each document and mark it verified or rejected.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon-badge" style="background:var(--rose);color:var(--rose-ink)">🔒</div>
+        <h3>Consent-first sharing</h3>
+        <p>Only the verifiers a student approves can ever see their records — and access can be revoked instantly.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon-badge" style="background:var(--amber);color:var(--amber-ink)">🕘</div>
+        <h3>Academic activity log</h3>
+        <p>Every upload, verification and access change is recorded as a tamper-free history.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="roles">
+    <div class="section-head">
+      <h2>One platform, three roles</h2>
+      <p>Pick the role that fits you at sign-in. Each role has a dedicated, connected workspace.</p>
+    </div>
+    <div class="grid-3">
+      <div class="role-card">
+        <div class="icon-badge" style="background:var(--mint);color:var(--mint-ink)">👤</div>
+        <h3>Students</h3>
+        <p>Upload your academic documents, watch their verification status live, and decide exactly which employers can see your verified credentials.</p>
+        <ul class="role-list">
+          <li><span class="dot">＋</span> Upload certificates &amp; transcripts</li>
+          <li><span class="dot">◐</span> Track pending / verified / rejected status</li>
+          <li><span class="dot">⇄</span> Grant or revoke employer access anytime</li>
+        </ul>
+        <button class="btn btn-secondary" onclick="enterApp('student')">Continue as Student</button>
+      </div>
+      <div class="role-card">
+        <div class="icon-badge" style="background:var(--lavender);color:var(--lavender-ink)">🏛</div>
+        <h3>Institutions</h3>
+        <p>Review submitted credentials, confirm authenticity, and maintain a complete track record of academic activity for every student.</p>
+        <ul class="role-list">
+          <li><span class="dot">🔍</span> Inspect uploaded documents</li>
+          <li><span class="dot">✓</span> Approve or reject with notes</li>
+          <li><span class="dot">🕘</span> Keep an immutable activity log</li>
+        </ul>
+        <button class="btn btn-primary" onclick="enterApp('institution')">Continue as Institution</button>
+      </div>
+      <div class="role-card">
+        <div class="icon-badge" style="background:var(--rose);color:var(--rose-ink)">🔎</div>
+        <h3>Verifiers / Employers</h3>
+        <p>Search for a candidate and instantly confirm that the credential they present is authentic and not forged with the issuing institution on record.</p>
+        <ul class="role-list">
+          <li><span class="dot">🔍</span> Find students by name or username</li>
+          <li><span class="dot">✓</span> See institution-verified records only</li>
+          <li><span class="dot">🔒</span> Nothing is visible without student consent</li>
+        </ul>
+        <button class="btn btn-secondary" onclick="enterApp('verifier')">Continue as Verifier</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="how-it-works">
+    <div class="section-head">
+      <h2>How it works</h2>
+      <p>From upload to verified in four gentle steps.</p>
+    </div>
+    <div class="grid-4">
+      <div class="step-card"><div class="step-num">01</div><h3>Create a role-based account</h3><p>Sign up as a student, an institution or a verifier — each role gets its own workspace.</p></div>
+      <div class="step-card"><div class="step-num">02</div><h3>Upload &amp; submit documents</h3><p>Students upload credentials; institutions review them and mark them verified.</p></div>
+      <div class="step-card"><div class="step-num">03</div><h3>Share with full consent</h3><p>Students grant access to chosen employers, and can revoke it at any moment.</p></div>
+      <div class="step-card"><div class="step-num">04</div><h3>Verify authenticity</h3><p>Employers check that every credential they see is authentic and institution-verified.</p></div>
+    </div>
+  </section>
+
+  <div class="cta-banner">
+    <h2>Ready to make forgery impossible?</h2>
+    <p>Join as a student, institution or verifier and start building trust in minutes.</p>
+    <button class="btn btn-primary" onclick="goToDashboard()">Go to my dashboard <span>→</span></button>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-brand">
+      <span class="brand-badge" style="width:26px;height:26px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2l8 3v6c0 5-3.5 8.5-8 11-4.5-2.5-8-6-8-11V5l8-3z" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg>
+      </span>
+      CredVerify
+    </div>
+    <div>Trusted credential verification for students, institutions &amp; employers.</div>
+    <div class="footer-links">
+      <a href="#" onclick="openRolePicker('signin');return false;">Sign in</a>
+      <a href="#" onclick="openRolePicker('register');return false;">Register</a>
+    </div>
+  </footer>
+</div>
+
+<!-- ============ APP SHELL ============ -->
+<div id="app" class="app-shell hidden">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <span class="brand-badge" style="width:28px;height:28px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 2l8 3v6c0 5-3.5 8.5-8 11-4.5-2.5-8-6-8-11V5l8-3z" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg>
+      </span>
+      CredVerify
+    </div>
+        <div class="sidebar-user">
+      <span class="avatar" id="user-avatar">👤</span>
+      <div><span class="name" id="user-name">—</span><span class="role" id="user-role">—</span></div>
+    </div>
+    <div id="wallet-connect-box" style="padding:10px 20px;"></div>
+    <nav class="side-nav" id="side-nav"></nav>
+    <div class="sidebar-foot">
+      <button onclick="signOut()">↩ Sign out</button>
+      <a class="back-home" href="#" onclick="showLanding();return false;">Student home</a>
+    </div>
+  </aside>
+
+  <main class="app-main" id="app-main"></main>
+</div>
+
+<!-- ============ AUTH MODAL (Sign in / Create account) ============ -->
+<div id="role-modal" class="hidden" style="position:fixed;inset:0;background:rgba(20,20,20,0.35);display:flex;align-items:center;justify-content:center;z-index:998;">
+  <div style="background:#fff;border-radius:18px;padding:32px;width:380px;box-shadow:var(--shadow);">
+    <h2 id="role-modal-title" style="margin:0 0 8px;font-size:20px;">Sign in to your role</h2>
+    <p id="role-modal-sub" style="color:var(--muted);font-size:14px;margin:0 0 18px;">Enter your details below.</p>
+
+    <form id="auth-form" onsubmit="handleAuthSubmit(event)">
+      <div id="register-only-fields" style="display:flex;flex-direction:column;gap:10px;margin-bottom:10px;">
+        <input id="auth-name" type="text" placeholder="Full name" style="padding:10px;border:1px solid #ddd;border-radius:8px;">
+        <select id="auth-role" style="padding:10px;border:1px solid #ddd;border-radius:8px;">
+          <option value="student">Student</option>
+          <option value="administrator">Institution</option>
+          <option value="verifier">Verifier</option>
+        </select>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <input id="auth-email" type="email" placeholder="Email" required style="padding:10px;border:1px solid #ddd;border-radius:8px;">
+        <input id="auth-password" type="password" placeholder="Password" required style="padding:10px;border:1px solid #ddd;border-radius:8px;">
+      </div>
+
+      <div id="auth-message" style="font-size:13px;margin-top:10px;"></div>
+
+      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:14px;" id="auth-submit-btn">Continue</button>
+    </form>
+
+    <button class="btn btn-ghost" style="margin-top:10px;width:100%;justify-content:center;" onclick="closeRolePicker()">Cancel</button>
+  </div>
+</div>
+
+<script>
+/* =====================================================================
+   In-memory shared "database" — resets on page reload (no localStorage,
+   this file is meant to be a visual/functional starting point that you
+   can wire up to a real backend later).
+===================================================================== */
+const db = {
+  documents: [
+    // { id, title, type, studentName, institution, status: pending|verified|rejected, note, createdAt }
+  ],
+  grants: [
+    // { id, studentName, verifierName, org, createdAt }
+  ],
+  activity: [
+    // { id, who, text, icon, time }
+  ],
+  verifiers: [
+    { name: "Jordan Blake", org: "Acme Corp" },
+    { name: "Sam Rivera", org: "Northwind Talent" },
+    { name: "Priya Nair", org: "Delta Hiring Partners" }
+  ]
+};
+
+const users = {
+  student:     { name: "Chinalurum Michael", role: "Student", avatar: "👤" },
+  institution: { name: "Greenfield University", role: "Institution", avatar: "🏛" },
+  verifier:    { name: "Jordan Blake", role: "Verifier", org: "Acme Corp", avatar: "🔎" }
+};
+
+async function loadMyCredentials(){
+  const token = localStorage.getItem('token');
+  const wallet = localStorage.getItem('walletAddress');
+  if(!token || !wallet) return;
+function copyCredentialLink(url){
+  navigator.clipboard.writeText(url);
+  showToast('Link copied! Share this with an employer or verifier.');
+}
+  try {
+    const res = await fetch(`${API_BASE}/credentials/my-credentials`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await res.json();
+    if(res.ok){
+      myCredentials = data.credentials || [];
+      if(currentRole === 'student') render();
+    }
+  } catch (err) {
+    console.error('Failed to load credentials:', err);
+  }
+}
+
+function timeAgo(){ return "just now"; }
+
+function logActivity(text, icon){
+  db.activity.unshift({ id: nextId(), text, icon: icon || "🕘", time: timeAgo() });
+}
+
+/* ---------------- Navigation between landing / app ---------------- */
+const API_BASE = "http://localhost:5000/api";
+let authMode = 'signin';
+
+function openRolePicker(mode){
+  authMode = mode;
+  document.getElementById('role-modal-title').textContent =
+    mode === 'register' ? 'Create your account' : 'Sign in to your role';
+  document.getElementById('role-modal-sub').textContent =
+    mode === 'register' ? 'Fill in your details to get started.' : 'Enter your email and password.';
+  document.getElementById('register-only-fields').style.display = mode === 'register' ? 'flex' : 'none';
+  document.getElementById('auth-message').textContent = '';
+  document.getElementById('role-modal').classList.remove('hidden');
+}
+function closeRolePicker(){ document.getElementById('role-modal').classList.add('hidden'); }
+
+function goToDashboard(){
+  if(currentRole){ showApp(); } else { openRolePicker('signin'); }
+}
+
+async function handleAuthSubmit(e){
+  e.preventDefault();
+  const messageEl = document.getElementById('auth-message');
+  const submitBtn = document.getElementById('auth-submit-btn');
+  const email = document.getElementById('auth-email').value;
+  const password = document.getElementById('auth-password').value;
+
+  messageEl.style.color = '#666';
+  messageEl.textContent = 'Please wait...';
+  submitBtn.disabled = true;
+
+  try {
+    if (authMode === 'register') {
+      const name = document.getElementById('auth-name').value;
+      const role = document.getElementById('auth-role').value;
+
+      const res = await fetch(`${API_BASE}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password, role })
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        messageEl.style.color = '#c0392b';
+        messageEl.textContent = data.error || 'Registration failed.';
+        return;
+      }
+
+      messageEl.style.color = '#27ae60';
+      messageEl.textContent = 'Account created! Signing you in...';
+
+      // Auto sign-in right after registering
+      await loginRequest(email, password);
+    } else {
+      await loginRequest(email, password);
+    }
+  } catch (err) {
+    messageEl.style.color = '#c0392b';
+    messageEl.textContent = `Network error: ${err.message}. Is the backend running on port 5000?`;
+  } finally {
+    submitBtn.disabled = false;
+  }
+}
+
+async function loginRequest(email, password){
+  const messageEl = document.getElementById('auth-message');
+
+  const res = await fetch(`${API_BASE}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password })
+  });
+  const data = await res.json();
+
+  if (!res.ok) {
+    messageEl.style.color = '#c0392b';
+    messageEl.textContent = data.error || 'Login failed.';
+    return;
+  }
+
+  // Map backend role -> frontend role key used by the rest of this app
+  const roleMap = { student: 'student', administrator: 'institution', verifier: 'verifier' };
+  currentRole = roleMap[data.user.role] || 'student';
+  users[currentRole].name = data.user.name;
+
+  localStorage.setItem('token', data.token);
+  closeRolePicker();
+  showApp();
+  logActivity(`Signed in as ${users[currentRole].role.toLowerCase()}`, "🔑");
+}
+
+function signOut(){
+  currentRole = null;
+  showLanding();
+}
+
+function showLanding(){
+  document.getElementById('landing').classList.remove('hidden');
+  document.getElementById('app').classList.add('hidden');
+  window.scrollTo(0,0);
+}
+
+function showApp(){
+  document.getElementById('landing').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  const u = users[currentRole];
+  document.getElementById('user-avatar').textContent = u.avatar;
+  document.getElementById('user-name').textContent = u.name;
+  document.getElementById('user-role').textContent = u.role;
+    renderWalletBox();
+  if(currentRole === 'student') loadMyCredentials();
+  renderSideNav();
+  const defaultView = currentRole === 'student' ? 'credentials'
+                     : currentRole === 'institution' ? 'review'
+                     : 'search';
+  setView(defaultView);
+}
+
+function renderWalletBox(){
+  const box = document.getElementById('wallet-connect-box');
+  if(currentRole !== 'student'){ box.innerHTML = ''; return; }
+
+  const wallet = localStorage.getItem('walletAddress');
+  if(wallet){
+    box.innerHTML = `<span style="font-size:12px;color:#6b7280;">Wallet: ${wallet.slice(0,6)}...${wallet.slice(-4)}</span>`;
+  } else {
+    box.innerHTML = `<button class="btn btn-secondary btn-sm" style="width:100%;" onclick="connectStudentWallet()">Connect Wallet</button>`;
+  }
+}
+
+async function connectStudentWallet(){
+  if(typeof window.ethereum === 'undefined'){
+    showToast('MetaMask not found. Please install the MetaMask extension.');
+    return;
+  }
+
+  try {
+    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    const walletAddress = accounts[0];
+
+    const token = localStorage.getItem('token');
+    const res = await fetch(`${API_BASE}/auth/wallet`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ walletAddress })
+    });
+    const data = await res.json();
+
+    if(!res.ok){
+      showToast(data.error || 'Failed to connect wallet.');
+      return;
+    }
+
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('walletAddress', data.walletAddress);
+    renderWalletBox();
+    loadMyCredentials();
+    showToast('Wallet connected successfully!');
+  } catch (err) {
+    showToast(`Error: ${err.message}`);
+  }
+}
+/* ---------------- Side nav per role ---------------- */
+const NAV = {
+  student: [
+    { id: 'credentials', label: 'My credentials', icon: '📄' },
+    { id: 'upload', label: 'Upload document', icon: '✓' },
+    { id: 'access', label: 'Access control', icon: '🔒' },
+    { id: 'activity', label: 'Activity log', icon: '🕘' },
+  ],
+    institution: [
+    { id: 'review', label: 'Issue credential', icon: '📥' },
+    { id: 'all', label: 'All documents', icon: '📄' },
+    { id: 'activity', label: 'Activity log', icon: '🕘' },
+  ],
+  verifier: [
+    { id: 'search', label: 'Find a student', icon: '🔎' },
+    { id: 'activity', label: 'Activity log', icon: '🕘' },
+  ]
+};
+
+function renderSideNav(){
+  const nav = document.getElementById('side-nav');
+  nav.innerHTML = '';
+  NAV[currentRole].forEach(item => {
+    const b = document.createElement('button');
+    b.textContent = `${item.icon}  ${item.label}`;
+    b.onclick = () => setView(item.id);
+    b.id = `nav-${item.id}`;
+    nav.appendChild(b);
+  });
+}
+
+function setView(view){
+  activeView = view;
+  document.querySelectorAll('#side-nav button').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById(`nav-${view}`);
+  if(btn) btn.classList.add('active');
+  render();
+}
+
+/* ---------------- Shared bits ---------------- */
+function statCard(bg, ink, icon, num, label){
+  return `<div class="stat-card">
+    <div class="icon-badge" style="background:${bg};color:${ink}">${icon}</div>
+    <div class="num">${num}</div>
+    <div class="label">${label}</div>
+  </div>`;
+}
+
+function emptyState(icon, title, body){
+  return `<div class="empty-state">
+    <div class="icon-badge" style="background:var(--mint);color:var(--mint-ink)">${icon}</div>
+    <h3>${title}</h3>
+    <p>${body}</p>
+  </div>`;
+}
+
+function statusPill(status){
+  if(status === 'verified') return `<span class="status-pill status-verified">✓ Verified</span>`;
+  if(status === 'rejected') return `<span class="status-pill status-rejected">✕ Rejected</span>`;
+  return `<span class="status-pill status-pending">⏳ Pending</span>`;
+}
+
+/* ---------------- Main render dispatcher ---------------- */
+function render(){
+  const main = document.getElementById('app-main');
+  if(currentRole === 'student') main.innerHTML = renderStudent();
+  if(currentRole === 'institution') main.innerHTML = renderInstitution();
+  if(currentRole === 'verifier') main.innerHTML = renderVerifier();
+}
+
+/* ===================== STUDENT ===================== */
+function renderStudent(){
+  const docs = myCredentials;
+  const wallet = localStorage.getItem('walletAddress');
+  const grants = db.grants.filter(g => g.studentName === users.student.name);
+
+  let head = `<h1>Hello, ${users.student.name.split(' ')[0]}</h1>
+  <p class="subhead">Manage your credentials, track verification and control who can see them.</p>
+  <div class="stat-grid">
+    ${statCard('var(--blue)','var(--blue-ink)','📄', docs.length, 'Credentials')}
+    ${statCard('var(--mint)','var(--mint-ink)','✓', docs.length, 'On-chain & verified')}
+    ${statCard('var(--rose)','var(--rose-ink)','🔒', grants.length, 'Active grants')}
+  </div>`;
+
+  if(activeView === 'credentials'){
+    let body;
+    if(!wallet){
+      body = emptyState('🔗','Connect your wallet','Connect your wallet from the sidebar to see credentials issued to you.');
+    } else if(docs.length === 0){
+      body = emptyState('📄','No credentials yet','Once an institution issues you a credential on-chain, it will appear here.');
+    } else {
+            body = docs.map(c => `
+        <div class="cred-item">
+          <div class="cred-main">
+            <div class="file-icon">📄</div>
+            <div>
+              <div class="title">${c.degreeTitle}</div>
+              <div class="meta">${c.institutionName}${c.classification ? ' · '+c.classification : ''} · issued ${new Date(c.issueDate).toLocaleDateString()}</div>
+            </div>
+          </div>
+          <div class="right" style="display:flex;gap:8px;">
+            <a href="${c.ipfsUrl}" target="_blank" class="btn btn-secondary btn-sm">Download PDF</a>
+            <button class="btn btn-secondary btn-sm" onclick="copyCredentialLink('${c.ipfsUrl}')">Share</button>
+            <a href="https://sepolia.etherscan.io/tx/${c.txHash}" target="_blank" class="btn btn-secondary btn-sm">View on-chain</a>
+          </div>
+        </div>`).join('');
+    }
+    return head + `<div class="panel">
+      <div class="panel-head"><h2>My credentials</h2></div>
+      ${body}
+    </div>`;
+  }
+
+  if(activeView === 'upload'){
+    return head + `<div class="panel">
+      <h2>Upload a credential document</h2>
+      <p class="panel-sub">PDF or image up to 1MB. Once uploaded, an institution will review it and mark it verified or rejected.</p>
+      <div class="field">
+        <label>Document title</label>
+        <input id="doc-title" placeholder="e.g. BSc Computer Science Certificate">
+      </div>
+      <div class="field">
+        <label>Document type</label>
+        <select id="doc-type">
+          <option>Certificate</option>
+          <option>Transcript</option>
+          <option>Diploma</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>File</label>
+        <input type="file" id="doc-file">
+      </div>
+      <button class="btn btn-primary" onclick="uploadDocument()">Upload document</button>
+    </div>`;
+  }
+
+  if(activeView === 'access'){
+    let grantsHtml = grants.length === 0
+      ? emptyState('🔒','No active grants','Grant access below so employers can verify your credentials.')
+      : grants.map(g => `
+        <div class="grant-item">
+          <div class="who">
+            <div class="av">${g.verifierName.split(' ').map(w=>w[0]).slice(0,2).join('')}</div>
+            <div><div class="name">${g.verifierName}</div><div class="org">${g.org}</div></div>
+          </div>
+          <button class="btn btn-danger btn-sm" onclick="revokeGrant(${g.id})">Revoke</button>
+        </div>`).join('');
+
+    let optionsHtml = db.verifiers.map(v =>
+      `<option value="${v.name}">${v.name} — ${v.org}</option>`
+    ).join('');
+
+    return head + `
+      <div class="panel">
+        <h2>Current permissions</h2>
+        <p class="panel-sub">These verifiers/employers can currently see your credentials. Revoke anytime — it takes effect immediately.</p>
+        ${grantsHtml}
+      </div>
+      <div class="panel">
+        <h2>Grant access to a verifier</h2>
+        <p class="panel-sub">Search registered verifiers/employers and choose what they can see.</p>
+        <div class="search-row">
+          <select id="verifier-select">${optionsHtml}</select>
+          <button class="btn btn-primary btn-sm" onclick="grantAccess()">Grant access</button>
+        </div>
+      </div>`;
+  }
+
+  if(activeView === 'activity'){
+    return head + renderActivityPanel();
+  }
+}
+
+function uploadDocument(){
+  const title = document.getElementById('doc-title').value.trim();
+  const type = document.getElementById('doc-type').value;
+  if(!title){ showToast('Give your document a title first.'); return; }
+  db.documents.push({
+    id: nextId(), title, type, studentName: users.student.name,
+    institution: users.institution.name, status: 'pending', note: ''
+  });
+  logActivity(`Uploaded "${title}"`, '📤');
+  showToast('Document uploaded — awaiting institution review.');
+  setView('credentials');
+}
+
+function grantAccess(){
+  const val = document.getElementById('verifier-select').value;
+  const v = db.verifiers.find(v => v.name === val);
+  if(db.grants.some(g => g.studentName===users.student.name && g.verifierName===v.name)){
+    showToast(`${v.name} already has access.`); return;
+  }
+  db.grants.push({ id: nextId(), studentName: users.student.name, verifierName: v.name, org: v.org });
+  logActivity(`Granted access to ${v.name} (${v.org})`, '🔓');
+  showToast(`Access granted to ${v.name}.`);
+  setView('access');
+}
+
+function revokeGrant(id){
+  const g = db.grants.find(g => g.id === id);
+  db.grants = db.grants.filter(g => g.id !== id);
+  logActivity(`Revoked access for ${g.verifierName}`, '🔒');
+  showToast('Access revoked.');
+  setView('access');
+}
+
+/* ===================== INSTITUTION ===================== */
+function renderInstitution(){
+  const all = db.documents;
+  const pending = all.filter(d => d.status === 'pending');
+
+  let head = `<h1>Hello, ${users.institution.name}</h1>
+  <p class="subhead">Review submitted credentials and keep the academic record accurate.</p>
+  <div class="stat-grid">
+    ${statCard('var(--blue)','var(--blue-ink)','📄', all.length, 'Total documents')}
+    ${statCard('var(--amber)','var(--amber-ink)','⏳', pending.length, 'Awaiting review')}
+    ${statCard('var(--mint)','var(--mint-ink)','✓', all.filter(d=>d.status==='verified').length, 'Verified')}
+    ${statCard('var(--rose)','var(--rose-ink)','✕', all.filter(d=>d.status==='rejected').length, 'Rejected')}
+  </div>`;
+
+    if(activeView === 'review'){
+    return head + `<div class="panel">
+      <h2>Issue a new credential</h2>
+      <p class="panel-sub">This writes a real credential to the blockchain via your backend.</p>
+      <div class="field">
+        <label>Student wallet address</label>
+        <input id="issue-wallet" placeholder="0x...">
+      </div>
+      <div class="field">
+        <label>Degree / credential title</label>
+        <input id="issue-title" placeholder="e.g. BSc Computer Science">
+      </div>
+      <div class="field">
+        <label>Classification (optional)</label>
+        <input id="issue-classification" placeholder="e.g. First Class Honours">
+      </div>
+      <div class="field">
+        <label>Issue date</label>
+        <input type="date" id="issue-date">
+      </div>
+      <div class="field">
+        <label>Credential document (PDF)</label>
+        <input type="file" id="issue-file" accept="application/pdf">
+      </div>
+      <button class="btn btn-primary" id="issue-submit-btn" onclick="issueCredentialOnChain()">Issue on blockchain</button>
+      <p id="issue-message" style="margin-top:12px;font-size:13.5px;"></p>
+    </div>`;
+  }
+
+  if(activeView === 'all'){
+    let body = all.length === 0
+      ? emptyState('📄','No documents yet','Documents submitted by students will appear here.')
+      : all.map(d => `
+        <div class="cred-item">
+          <div class="cred-main">
+            <div class="file-icon">📄</div>
+            <div><div class="title">${d.title}</div><div class="meta">${d.type} · ${d.studentName}${d.note ? ' · "'+d.note+'"' : ''}</div></div>
+          </div>
+          <div class="right">${statusPill(d.status)}</div>
+        </div>`).join('');
+    return head + `<div class="panel"><h2>All documents</h2>${body}</div>`;
+  }
+
+  if(activeView === 'activity'){
+    return head + renderActivityPanel();
+  }
+}
+
+function reviewDocument(id, status){
+  const d = db.documents.find(d => d.id === id);
+  const noteEl = document.getElementById(`note-${id}`);
+  d.status = status;
+  d.note = noteEl ? noteEl.value.trim() : '';
+  logActivity(`${status === 'verified' ? 'Verified' : 'Rejected'} "${d.title}" for ${d.studentName}`, status === 'verified' ? '✓' : '✕');
+  showToast(`Document marked ${status}.`);
+  render();
+}
+async function issueCredentialOnChain(){
+  const messageEl = document.getElementById('issue-message');
+  const submitBtn = document.getElementById('issue-submit-btn');
+
+  const wallet = document.getElementById('issue-wallet').value.trim();
+  const title = document.getElementById('issue-title').value.trim();
+  const classification = document.getElementById('issue-classification').value.trim();
+  const issueDate = document.getElementById('issue-date').value;
+  const fileInput = document.getElementById('issue-file');
+  const file = fileInput.files[0];
+
+  if(!wallet || !title || !issueDate || !file){
+    messageEl.style.color = '#c0392b';
+    messageEl.textContent = 'Wallet address, title, issue date, and PDF file are all required.';
+    return;
+  }
+
+  const token = localStorage.getItem('token');
+  if(!token){
+    messageEl.style.color = '#c0392b';
+    messageEl.textContent = 'You must be logged in to issue a credential.';
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('studentWallet', wallet);
+  formData.append('degreeTitle', title);
+  formData.append('classification', classification);
+  formData.append('issueDate', issueDate);
+  formData.append('credentialFile', file);
+
+  try {
+    submitBtn.disabled = true;
+    messageEl.style.color = '#666';
+    messageEl.textContent = 'Uploading to IPFS and writing to the blockchain... this can take 15-30 seconds.';
+
+    const res = await fetch(`${API_BASE}/credentials/issue`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: formData
+    });
+    const data = await res.json();
+
+    if(!res.ok){
+      messageEl.style.color = '#c0392b';
+      messageEl.textContent = data.error || 'Failed to issue credential.';
+      return;
+    }
+
+    messageEl.style.color = '#27ae60';
+    messageEl.innerHTML = `Credential issued on-chain! <a href="${data.credential.sepoliaExplorerUrl}" target="_blank">View transaction</a>`;
+    logActivity(`Issued "${title}" to ${wallet}`, '✓');
+    showToast('Credential issued successfully!');
+  } catch (err) {
+    messageEl.style.color = '#c0392b';
+    messageEl.textContent = `Network error: ${err.message}. Is the backend running on port 5000?`;
+  } finally {
+    submitBtn.disabled = false;
+  }
+}
+/* ===================== VERIFIER ===================== */
+function renderVerifier(){
+  const me = users.verifier;
+  let head = `<h1>Hello, ${me.name}</h1>
+  <p class="subhead">${me.org} · Search for a candidate and confirm their verified credentials.</p>`;
+
+  if(activeView === 'search'){
+    return head + `
+      <div class="panel">
+        <h2>Find a student</h2>
+        <p class="panel-sub">Nothing is visible unless the student has granted your organization access.</p>
+        <div class="search-row">
+          <input id="student-search" placeholder="Search by student name...">
+          <button class="btn btn-primary btn-sm" onclick="searchStudent()">Search</button>
+        </div>
+        <div id="search-results"></div>
+      </div>`;
+  }
+  if(activeView === 'activity'){
+    return head + renderActivityPanel();
+  }
+}
+
+function searchStudent(){
+  const q = document.getElementById('student-search').value.trim().toLowerCase();
+  const me = users.verifier;
+  const resultsEl = document.getElementById('search-results');
+  if(!q){ resultsEl.innerHTML = ''; return; }
+
+  const hasGrant = db.grants.some(g => g.studentName.toLowerCase().includes(q) && g.verifierName === me.name);
+  const studentMatches = db.documents.filter(d => d.studentName.toLowerCase().includes(q));
+
+  if(studentMatches.length === 0){
+    resultsEl.innerHTML = emptyState('🔎','No matches','No student matches that name.');
+    logActivity(`Searched for "${q}"`, '🔎');
+    return;
+  }
+  if(!hasGrant){
+    resultsEl.innerHTML = emptyState('🔒','Access not granted','This student hasn\'t granted your organization access to their credentials yet.');
+    logActivity(`Searched for "${q}" (no access)`, '🔒');
+    return;
+  }
+  const verifiedDocs = studentMatches.filter(d => d.status === 'verified');
+  resultsEl.innerHTML = verifiedDocs.length === 0
+    ? emptyState('📄','No verified credentials','This student has access granted, but no verified documents yet.')
+    : verifiedDocs.map(d => `
+      <div class="cred-item">
+        <div class="cred-main">
+          <div class="file-icon">📄</div>
+          <div><div class="title">${d.title}</div><div class="meta">${d.type} · ${d.studentName} · verified by ${d.institution}</div></div>
+        </div>
+        <div class="right">${statusPill(d.status)}</div>
+      </div>`).join('');
+  logActivity(`Verified credentials for "${q}"`, '✓');
+}
+
+/* ===================== Activity log (shared renderer) ===================== */
+function renderActivityPanel(){
+  let body = db.activity.length === 0
+    ? emptyState('🕘','No activity yet','Uploads, reviews and access changes will appear here.')
+    : db.activity.map(a => `
+      <div class="activity-item">
+        <div class="dot">${a.icon}</div>
+        <div><div class="text">${a.text}</div><div class="time">${a.time}</div></div>
+      </div>`).join('');
+  return `<div class="panel"><h2>Activity log</h2>${body}</div>`;
+}
+
+/* ---------------- Toast ---------------- */
+let toastTimer;
+function showToast(msg){
+  clearTimeout(toastTimer);
+  let el = document.getElementById('toast');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'toast';
+    el.className = 'toast';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.opacity = '1';
+  toastTimer = setTimeout(() => { el.style.opacity = '0'; }, 2600);
+}
+const landingEl = document.getElementById('landing');
+const bgInners = document.querySelectorAll('.bg-inner');
+
+landingEl.addEventListener('mousemove', e => {
+  const x = e.clientX / window.innerWidth - 0.5;
+  const y = e.clientY / window.innerHeight - 0.5;
+  bgInners[0].style.transform = `translate(${x * -30}px, ${y * -30}px)`;
+  bgInners[1].style.transform = `translate(${x * 30}px, ${y * 30}px)`;
+});
+
+landingEl.addEventListener('mouseleave', () => {
+  bgInners.forEach(l => l.style.transform = '');
+});
+</script>
+</body>
+</html>

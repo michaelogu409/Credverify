@@ -1,0 +1,49 @@
+{
+  "_format": "hh3-sol-build-info-1",
+  "id": "solc-0_8_34-bfba7293b0427cca9e6d65a829ebf21e19972151",
+  "solcVersion": "0.8.34",
+  "solcLongVersion": "0.8.34+commit.80d5c536",
+  "compilerType": "solc",
+  "toolVersions": {
+    "hardhat": "3.15.0"
+  },
+  "userSourceNameMap": {
+    "contracts/AccessControl.sol": "project/contracts/AccessControl.sol"
+  },
+  "input": {
+    "language": "Solidity",
+    "settings": {
+      "evmVersion": "osaka",
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "outputSelection": {
+        "*": {
+          "": [
+            "ast"
+          ],
+          "*": [
+            "abi",
+            "evm.bytecode.linkReferences",
+            "evm.bytecode.object",
+            "evm.bytecode.opcodes",
+            "evm.bytecode.sourceMap",
+            "evm.deployedBytecode.immutableReferences",
+            "evm.deployedBytecode.linkReferences",
+            "evm.deployedBytecode.object",
+            "evm.deployedBytecode.opcodes",
+            "evm.deployedBytecode.sourceMap",
+            "evm.methodIdentifiers"
+          ]
+        }
+      },
+      "remappings": []
+    },
+    "sources": {
+      "project/contracts/AccessControl.sol": {
+        "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.20;\n\n/// @title AccessControl\n/// @notice Manages roles for VeriChain: admins, institutions, and verifiers.\n/// @dev Other contracts (e.g. CredentialRegistry) can reference this contract\n///      to check whether an address is an authorized institution or verifier,\n///      instead of managing their own role list.\ncontract AccessControl {\n\n    bytes32 public constant ADMIN_ROLE = keccak256(\"ADMIN_ROLE\");\n    bytes32 public constant INSTITUTION_ROLE = keccak256(\"INSTITUTION_ROLE\");\n    bytes32 public constant VERIFIER_ROLE = keccak256(\"VERIFIER_ROLE\");\n\n    // role => account => hasRole\n    mapping(bytes32 => mapping(address => bool)) private roles;\n\n    event RoleGranted(bytes32 indexed role, address indexed account, address indexed grantedBy);\n    event RoleRevoked(bytes32 indexed role, address indexed account, address indexed revokedBy);\n\n    modifier onlyAdmin() {\n        require(roles[ADMIN_ROLE][msg.sender], \"Caller is not an admin\");\n        _;\n    }\n\n    constructor() {\n        _grantRole(ADMIN_ROLE, msg.sender);\n    }\n\n    /// @notice Check if an account holds a given role.\n    function hasRole(bytes32 role, address account) public view returns (bool) {\n        return roles[role][account];\n    }\n\n    /// @notice Convenience check used by other contracts / the frontend.\n    function isInstitution(address account) external view returns (bool) {\n        return roles[INSTITUTION_ROLE][account];\n    }\n\n    /// @notice Convenience check used by other contracts / the frontend.\n    function isVerifier(address account) external view returns (bool) {\n        return roles[VERIFIER_ROLE][account];\n    }\n\n    /// @notice Convenience check used by other contracts / the frontend.\n    function isAdmin(address account) external view returns (bool) {\n        return roles[ADMIN_ROLE][account];\n    }\n\n    /// @notice Admin grants any role to an account.\n    function grantRole(bytes32 role, address account) external onlyAdmin {\n        _grantRole(role, account);\n    }\n\n    /// @notice Admin revokes any role from an account.\n    function revokeRole(bytes32 role, address account) external onlyAdmin {\n        require(roles[role][account], \"Account does not have this role\");\n        roles[role][account] = false;\n        emit RoleRevoked(role, account, msg.sender);\n    }\n\n    /// @notice Shortcut: admin registers a new institution wallet.\n    function registerInstitution(address institution) external onlyAdmin {\n        _grantRole(INSTITUTION_ROLE, institution);\n    }\n\n    /// @notice Shortcut: admin removes an institution's access.\n    function removeInstitution(address institution) external onlyAdmin {\n        require(roles[INSTITUTION_ROLE][institution], \"Not currently an institution\");\n        roles[INSTITUTION_ROLE][institution] = false;\n        emit RoleRevoked(INSTITUTION_ROLE, institution, msg.sender);\n    }\n\n    /// @notice Shortcut: admin registers a new verifier wallet (e.g. an employer/org).\n    function registerVerifier(address verifier) external onlyAdmin {\n        _grantRole(VERIFIER_ROLE, verifier);\n    }\n\n    /// @notice Shortcut: admin removes a verifier's access.\n    function removeVerifier(address verifier) external onlyAdmin {\n        require(roles[VERIFIER_ROLE][verifier], \"Not currently a verifier\");\n        roles[VERIFIER_ROLE][verifier] = false;\n        emit RoleRevoked(VERIFIER_ROLE, verifier, msg.sender);\n    }\n\n    /// @notice Admin can promote another account to admin.\n    function addAdmin(address account) external onlyAdmin {\n        _grantRole(ADMIN_ROLE, account);\n    }\n\n    function _grantRole(bytes32 role, address account) internal {\n        require(account != address(0), \"Invalid address\");\n        roles[role][account] = true;\n        emit RoleGranted(role, account, msg.sender);\n    }\n}\n"
+      }
+    }
+  }
+}

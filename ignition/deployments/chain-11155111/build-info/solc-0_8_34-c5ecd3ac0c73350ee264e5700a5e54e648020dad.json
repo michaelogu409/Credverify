@@ -1,0 +1,49 @@
+{
+  "_format": "hh3-sol-build-info-1",
+  "id": "solc-0_8_34-c5ecd3ac0c73350ee264e5700a5e54e648020dad",
+  "solcVersion": "0.8.34",
+  "solcLongVersion": "0.8.34+commit.80d5c536",
+  "compilerType": "solc",
+  "toolVersions": {
+    "hardhat": "3.15.0"
+  },
+  "userSourceNameMap": {
+    "contracts/ProgressTracker.sol": "project/contracts/ProgressTracker.sol"
+  },
+  "input": {
+    "language": "Solidity",
+    "settings": {
+      "evmVersion": "osaka",
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "outputSelection": {
+        "*": {
+          "": [
+            "ast"
+          ],
+          "*": [
+            "abi",
+            "evm.bytecode.linkReferences",
+            "evm.bytecode.object",
+            "evm.bytecode.opcodes",
+            "evm.bytecode.sourceMap",
+            "evm.deployedBytecode.immutableReferences",
+            "evm.deployedBytecode.linkReferences",
+            "evm.deployedBytecode.object",
+            "evm.deployedBytecode.opcodes",
+            "evm.deployedBytecode.sourceMap",
+            "evm.methodIdentifiers"
+          ]
+        }
+      },
+      "remappings": []
+    },
+    "sources": {
+      "project/contracts/ProgressTracker.sol": {
+        "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.20;\n\n/// @title ProgressTracker\n/// @notice Records a student's academic progress (courses, semesters, grades) on-chain,\n///         separate from final issued credentials in CredentialRegistry.\n/// @dev Follows the same authorized-institution pattern as CredentialRegistry.\ncontract ProgressTracker {\n\n    address public owner;\n\n    struct ProgressEntry {\n        string courseName;     // e.g. \"Data Structures and Algorithms\"\n        string semester;       // e.g. \"Fall 2025\"\n        string grade;          // e.g. \"A\", \"B+\", \"Pass\"\n        uint256 creditUnits;   // credit hours/units for this course\n        address institution;   // wallet of the institution that recorded this entry\n        uint256 recordedAt;    // block timestamp\n    }\n\n    // student wallet => list of progress entries\n    mapping(address => ProgressEntry[]) private studentProgress;\n\n    // institution wallet => is it allowed to record progress\n    mapping(address => bool) public authorizedInstitutions;\n\n    event InstitutionAuthorized(address indexed institution);\n    event InstitutionRevoked(address indexed institution);\n    event ProgressRecorded(\n        address indexed student,\n        address indexed institution,\n        string courseName,\n        string semester,\n        string grade\n    );\n    event ProgressCorrected(address indexed student, uint256 indexed entryIndex, string newGrade);\n\n    modifier onlyOwner() {\n        require(msg.sender == owner, \"Not contract owner\");\n        _;\n    }\n\n    modifier onlyAuthorizedInstitution() {\n        require(authorizedInstitutions[msg.sender], \"Not an authorized institution\");\n        _;\n    }\n\n    constructor() {\n        owner = msg.sender;\n    }\n\n    /// @notice Owner authorizes an institution's wallet to record student progress.\n    function authorizeInstitution(address institution) external onlyOwner {\n        require(institution != address(0), \"Invalid address\");\n        authorizedInstitutions[institution] = true;\n        emit InstitutionAuthorized(institution);\n    }\n\n    /// @notice Owner revokes an institution's ability to record progress.\n    function revokeInstitution(address institution) external onlyOwner {\n        authorizedInstitutions[institution] = false;\n        emit InstitutionRevoked(institution);\n    }\n\n    /// @notice Record a completed course/semester entry for a student.\n    function recordProgress(\n        address student,\n        string calldata courseName,\n        string calldata semester,\n        string calldata grade,\n        uint256 creditUnits\n    ) external onlyAuthorizedInstitution {\n        require(student != address(0), \"Invalid student address\");\n        require(bytes(courseName).length > 0, \"Course name required\");\n\n        studentProgress[student].push(ProgressEntry({\n            courseName: courseName,\n            semester: semester,\n            grade: grade,\n            creditUnits: creditUnits,\n            institution: msg.sender,\n            recordedAt: block.timestamp\n        }));\n\n        emit ProgressRecorded(student, msg.sender, courseName, semester, grade);\n    }\n\n    /// @notice Institution corrects a grade on an existing entry it recorded\n    ///         (e.g. grade appeal outcome). Only the recording institution can correct it.\n    function correctGrade(address student, uint256 entryIndex, string calldata newGrade) external {\n        require(entryIndex < studentProgress[student].length, \"Entry does not exist\");\n        ProgressEntry storage entry = studentProgress[student][entryIndex];\n        require(entry.institution == msg.sender, \"Only recording institution can correct\");\n\n        entry.grade = newGrade;\n        emit ProgressCorrected(student, entryIndex, newGrade);\n    }\n\n    /// @notice Get all progress entries for a student — used by the student dashboard.\n    function getProgress(address student) external view returns (ProgressEntry[] memory) {\n        return studentProgress[student];\n    }\n\n    /// @notice Get the total number of credit units a student has completed so far.\n    function getTotalCredits(address student) external view returns (uint256 total) {\n        ProgressEntry[] storage entries = studentProgress[student];\n        for (uint256 i = 0; i < entries.length; i++) {\n            total += entries[i].creditUnits;\n        }\n    }\n\n    /// @notice Get how many entries a student has — useful before fetching the full array.\n    function getEntryCount(address student) external view returns (uint256) {\n        return studentProgress[student].length;\n    }\n}\n"
+      }
+    }
+  }
+}
